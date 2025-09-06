@@ -1,9 +1,16 @@
 import dotenv from "dotenv";
+import { z } from "zod";
 
-dotenv.config(); // загружает переменные из .env в process.env
 
-export const ENV = {
-  PORT: process.env.PORT || 3000,
-  DATABASE_URL: process.env.DATABASE_URL || "postgresql://postgres:Alibaba228@localhost:5432/test",
-  JWT_SECRET: process.env.JWT_SECRET || "changeme"
-};
+dotenv.config();
+
+
+const EnvSchema = z.object({
+  PORT: z.coerce.number().default(3000),           
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  JWT_SECRET: z.string().min(10, "JWT_SECRET must be at least 10 chars long")
+});
+
+
+export const ENV = EnvSchema.parse(process.env);
+export type EnvType = z.infer<typeof EnvSchema>;

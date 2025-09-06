@@ -1,103 +1,96 @@
-import prisma from "../config/db.js";
+import prisma from "../config/db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import {
-    UserRegistrationRequest,
-    User,
-    UserAuthorizationRequest
-  } from "../schemas/user.js";
-import { da } from "zod/locales";
-const JWT_SECRET = process.env.JWT_SECRET ?? "supersecret";
+  UserRegistrationRequest,
+  UserAuthorizationRequest,
+} from "../schemas/user";
+import { Status } from "../../generated/prisma/index";
+import { ENV } from "../config/env";
 
+const JWT_SECRET = ENV.JWT_SECRET;
 
 
 export async function CreateUser(data: UserRegistrationRequest) {
-    try {
-        const hashed = await bcrypt.hash(data.password, 10);
+  try {
+    const hashed = await bcrypt.hash(data.password, 10);
 
-        const user = await prisma.user.create({
-            data: {
-                name: data.name,
-                birthday: data.birthday,
-                password: hashed,
-                role: data.role ?? "USER",
-                status: data.status ?? "ACTIVE"
-            },
-            select: {
-                id: true,
-                name: true,
-                birthday: true,
-                role: true,
-                status: true,
-                createdAt: true
-            }
-        })
-        return user;
-    } 
-    catch {
-        throw new Error("Server error")
-    }
+    const user = await prisma.user.create({
+      data: {
+        email: data.email,
+        name: data.name,
+        ...(data.birthday ? { birthday: new Date(data.birthday) } : {}),
+        password: hashed,
+        role: data.role ?? "USER",
+        status: data.status ?? Status.ACTIVE,
+      },
+      select: {
+        email: true,
+        name: true,
+      },
+    });
+
+    return user;
+  } catch (e: any) {
+    console.error("CreateUser error:", e);
+    throw e; 
+  }
 }
 
-// export async function Auth(data: UserAuthorizationRequest) {
-//     try {
 
-//     } catch {
-//         throw new Error("Sercer Error")
-//     }
-// }
+export async function LoginById(data: { email: string; password: string }) {
+  const user = await prisma.user.findUnique({ where: { email: data.email } });
+  if (!user) {
+    throw new Error("User not found");
+  }
 
-export async function LoginById(data: {id: string, password: string}) {
-    const user = await prisma.user.findUnique({where: {id: data.id}})
-    if (!user) {
-        throw new Error("User not found")
-    }
-    const isValid = await bcrypt.compare(data.password , user.password);
-    if (!isValid) {
-        throw new Error("Incorrect password")
-    }
-    const token = jwt.sign(
-        { id: user.id, role: user.role }, // payload
-        JWT_SECRET,                       // секретный ключ
-        { expiresIn: "30m" }              // опции
-    );
-    return {token}
+  const isValid = await bcrypt.compare(data.password, user.password);
+  if (!isValid) {
+    throw new Error("Incorrect password");
+  }
+
+  const token = jwt.sign(
+    { email: user.email, role: user.role }, 
+    JWT_SECRET,
+    { expiresIn: "30m" }
+  );
+  return { token };
 }
+
 
 export async function getAll() {
-    return prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        birthday: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
-    });
-  }
+  return prisma.user.findMany({
+    select: {
+      email: true,
+      name: true,
+      birthday: true,
+      role: true,
+      status: true,
+    },
+  });
+}
 
-  export async function getById(id: string) {
-    return prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        birthday: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
-    });
-  }
 
-  export async function setStatus(id: string, status: "ACTIVE" | "BLOCKED") {
-    const newStatus = status === "ACTIVE" ? "BLOCKED" : "ACTIVE";
-  
-    return prisma.user.update({
-      where: { id },
-      data: { status: newStatus },
-      select: { id: true, status: true },
-    });
-  }
-  
+export async function getById(email: string) {
+  return prisma.user.findUnique({
+    where: { email },
+    select: {
+      email: true,
+      name: true,
+      birthday: true,
+      role: true,
+      status: true,
+    },
+  });
+}
+
+
+export async function setStatus(email: string, status: Status) {
+  const newStatus = status === Status.ACTIVE ? Status.BLOCKED : Status.ACTIVE;
+
+  return prisma.user.update({
+    where: { email },
+    data: { status: newStatus },
+    select: { email: true, status: true },
+  });
+}

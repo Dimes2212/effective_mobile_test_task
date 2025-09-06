@@ -1,12 +1,20 @@
-import express from "express";
+
+import express, { Request, Response } from "express";
+import userRoutes from "./routes/routes";
+import { ENV } from "./config/env";
 
 const app = express();
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.json({ message: "User service API running 🚀" });
+app.use("/api/users", userRoutes);
+
+app.get("/", (_req: Request, res: Response) => {
+  res.json({ ok: true });
 });
 
-app.listen(3000, () => {
-  console.log("Server running at http://localhost:3000");
-});
+export { app };
+
+if (process.env.NODE_ENV !== "test") {
+  const port = Number(process.env.PORT || (ENV as any)?.PORT || 3000);
+  app.listen(port, () => console.log(`Server running at http://localhost:${port}`));
+}

@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import prisma from "../config/db.js";
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-const JWT_SECRET = process.env.JWT_SECRET ?? "supersecret";
+import { ENV } from "../config/env";
+const JWT_SECRET = ENV.JWT_SECRET;
 
 
 export function auth(req: Request, res: Response, next: NextFunction) {
@@ -13,7 +12,7 @@ export function auth(req: Request, res: Response, next: NextFunction) {
   
     try {
       const token = header.split(" ")[1];
-      const payload = jwt.verify(token, JWT_SECRET) as { id: string; role: string };
+      const payload = jwt.verify(token, JWT_SECRET) as { email: string; role: string };
       (req as any).user = payload;
   
       next(); 

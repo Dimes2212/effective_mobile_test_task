@@ -31,9 +31,13 @@ export async function CreateUser(data: UserRegistrationRequest) {
     });
 
     return user;
-  } catch (e: any) {
-    console.error("CreateUser error:", e);
-    throw e; 
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      console.error("CreateUser error:", e.message);
+      throw e;
+    }
+    console.error("CreateUser unknown error:", e);
+    throw new Error("Unexpected error"); 
   }
 }
 

@@ -18,6 +18,7 @@ import {
 } from "../services/services";
 import { Request, Response } from "express";
 import { ZodError } from "zod";
+import { toErrorResponse } from "../errors/ErrorHandler";
 
 export const Registration = async (req: Request, res: Response) => {
   try {
@@ -31,11 +32,9 @@ export const Registration = async (req: Request, res: Response) => {
     const response = UserRegistrationResponseSchema.parse(user);
 
     return res.status(201).json(response);
-  } catch (e: any) {
-    if (e.message === "Server error") {
-      return res.status(500).json({ error: "Server error" });
-    }9
-    return res.status(400).json({ error: e.message });
+  } catch (e: unknown) {
+    const { error } = toErrorResponse(e);
+    return res.status(400).json({ error });
   }
 };
 
@@ -46,11 +45,9 @@ export const Authorization = async (req: Request, res: Response) => {
     const { token } = await LoginById(existUser);
     const parsedToken = UserAuthorizationResponseSchema.parse({ token });
     return res.status(200).json(parsedToken);
-  } catch (e: any) {
-    if (e instanceof ZodError) {
-      return res.status(400).json({ error: e.errors });
-    }
-    return res.status(401).json({ error: e.message });
+  } catch (e: unknown) {
+    const { error } = toErrorResponse(e);
+    return res.status(400).json({ error });
   }
 };
 
@@ -73,11 +70,9 @@ export const GetUserById = async (req: Request, res: Response) => {
 
     const response = UserFindByIdResponseSchema.parse(neededUser);
     return res.status(200).json(response);
-  } catch (e: any) {
-    if (e instanceof ZodError) {
-      return res.status(400).json({ error: e.errors }); 
-    }
-    return res.status(401).json({ error: e.message });
+  } catch (e: unknown) {
+    const { error } = toErrorResponse(e);
+    return res.status(400).json({ error });
   }
 };
 
@@ -97,8 +92,9 @@ export const GetAllUsers = async (req: Request, res: Response) => {
     } else {
       return res.status(403).json({ error: "Forbidden" });
     }
-  } catch (e: any) {
-    return res.status(401).json({ error: e.message });
+  } catch (e: unknown) {
+    const { error } = toErrorResponse(e);
+    return res.status(400).json({ error });
   }
 };
 
@@ -121,7 +117,8 @@ export const BanUser = async (req: Request, res: Response) => {
     const answer = await setStatus(neededUser.email, neededUser.status);
     const parsedStatus = UserBanResponseSchema.parse(answer);
     return res.status(200).json(parsedStatus);
-  } catch (e: any) {
-    return res.status(400).json({ error: e.message });
+  } catch (e: unknown) {
+    const { error } = toErrorResponse(e);
+    return res.status(400).json({ error });
   }
 };

@@ -15,6 +15,6 @@ app.get("/", (_req: Request, res: Response) => {
 export { app };
 
 if (process.env.NODE_ENV !== "test") {
-  const port = Number(process.env.PORT || (ENV as any)?.PORT || 3000);
+  const port = Number(process.env.PORT ?? ENV.PORT ?? 3000);
   app.listen(port, () => console.log(`Server running at http://localhost:${port}`));
 }
